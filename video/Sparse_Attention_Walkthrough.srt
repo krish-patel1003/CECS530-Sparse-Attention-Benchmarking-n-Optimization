@@ -1,0 +1,755 @@
+1
+00:00:00,000 --> 00:00:02,804
+Sparse attention benchmarking and optimization.
+
+2
+00:00:02,804 --> 00:00:06,444
+This video walks through the whole project in plain language:
+
+3
+00:00:06,444 --> 00:00:11,217
+the problem, the idea, our code, how we measured it, and what every graph means.
+
+4
+00:00:11,583 --> 00:00:12,259
+Four parts.
+
+5
+00:00:12,259 --> 00:00:15,389
+First, what attention is and why it gets expensive.
+
+6
+00:00:15,389 --> 00:00:18,766
+Second, our block sparse kernel and how we improved it.
+
+7
+00:00:18,766 --> 00:00:21,896
+Third, the benchmarking framework and every result.
+
+8
+00:00:21,896 --> 00:00:26,132
+And last, why the results look the way they do, and what we conclude.
+
+9
+00:00:27,083 --> 00:00:28,117
+Take the sentence:
+
+10
+00:00:28,117 --> 00:00:30,013
+the cat sat because it was tired.
+
+11
+00:00:30,013 --> 00:00:34,723
+To understand the word it, a language model has to work out that it means the cat.
+
+12
+00:00:34,723 --> 00:00:35,872
+Attention does this:
+
+13
+00:00:35,872 --> 00:00:40,237
+every word looks at every other word, and decides how much each one matters.
+
+14
+00:00:40,625 --> 00:00:44,500
+Each word is turned into three lists of sixty four numbers.
+
+15
+00:00:44,500 --> 00:00:45,025
+A query:
+
+16
+00:00:45,025 --> 00:00:46,470
+what am I looking for.
+
+17
+00:00:46,470 --> 00:00:46,864
+A key:
+
+18
+00:00:46,864 --> 00:00:47,914
+what do I offer.
+
+19
+00:00:47,914 --> 00:00:48,702
+And a value:
+
+20
+00:00:48,702 --> 00:00:50,410
+the information I pass on.
+
+21
+00:00:50,792 --> 00:00:51,810
+Then three steps.
+
+22
+00:00:51,810 --> 00:00:52,050
+One:
+
+23
+00:00:52,050 --> 00:00:56,904
+score every pair of words, by comparing one word's query with another word's key.
+
+24
+00:00:56,904 --> 00:00:59,600
+That makes a table with N rows and N columns.
+
+25
+00:00:59,600 --> 00:00:59,840
+Two:
+
+26
+00:00:59,840 --> 00:01:03,735
+softmax turns each row of scores into weights that add up to one.
+
+27
+00:01:03,735 --> 00:01:04,094
+Three:
+
+28
+00:01:04,094 --> 00:01:07,510
+each word's output is the weighted average of the values.
+
+29
+00:01:07,510 --> 00:01:10,446
+So it ends up mostly carrying the meaning of cat.
+
+30
+00:01:10,833 --> 00:01:11,629
+As a formula:
+
+31
+00:01:11,629 --> 00:01:16,157
+softmax of Q times K transpose, over the square root of the size, times V.
+
+32
+00:01:16,157 --> 00:01:20,501
+Code that computes this on real hardware is called an attention kernel.
+
+33
+00:01:21,458 --> 00:01:23,022
+The problem is that table.
+
+34
+00:01:23,022 --> 00:01:26,750
+It has N times N entries, so when the text gets twice as long,
+
+35
+00:01:26,750 --> 00:01:28,735
+the table gets four times bigger:
+
+36
+00:01:28,735 --> 00:01:31,501
+four times the work and four times the memory.
+
+37
+00:01:31,875 --> 00:01:34,970
+At sixteen thousand tokens with eight attention heads,
+
+38
+00:01:34,970 --> 00:01:40,357
+one pass needs five hundred and fifty billion operations, and the table takes eight gigabytes.
+
+39
+00:01:40,357 --> 00:01:42,936
+That's half the memory of the laptop we used.
+
+40
+00:01:43,917 --> 00:01:45,019
+The idea is simple.
+
+41
+00:01:45,019 --> 00:01:48,730
+Most words only need their neighbours and a few important words.
+
+42
+00:01:48,730 --> 00:01:52,441
+So we cut the big table into blocks of sixty four by sixty four,
+
+43
+00:01:52,441 --> 00:01:54,761
+and only compute the blocks that matter.
+
+44
+00:01:54,761 --> 00:01:56,907
+A skipped block costs nothing at all.
+
+45
+00:01:57,292 --> 00:01:59,833
+Which blocks to keep is called the pattern.
+
+46
+00:01:59,833 --> 00:02:01,193
+Our framework has five.
+
+47
+00:02:01,193 --> 00:02:02,552
+Dense keeps everything.
+
+48
+00:02:02,552 --> 00:02:04,503
+Local keeps a band of neighbours.
+
+49
+00:02:04,503 --> 00:02:06,689
+Strided adds regular summary columns.
+
+50
+00:02:06,689 --> 00:02:09,999
+Longformer adds a few global blocks that see everything.
+
+51
+00:02:09,999 --> 00:02:13,664
+And random keeps the same number of random blocks in each row.
+
+52
+00:02:14,042 --> 00:02:16,666
+The fraction of blocks we keep is the density.
+
+53
+00:02:16,666 --> 00:02:20,660
+Keep one block in eight, and the density is twelve and a half percent,
+
+54
+00:02:20,660 --> 00:02:23,113
+so ideally the work is eight times smaller.
+
+55
+00:02:23,113 --> 00:02:23,855
+Our question:
+
+56
+00:02:23,855 --> 00:02:26,651
+how close does a real computer get to that ideal?
+
+57
+00:02:27,042 --> 00:02:28,157
+One important point.
+
+58
+00:02:28,157 --> 00:02:31,726
+A lazy way to do sparse attention is to compute the whole table,
+
+59
+00:02:31,726 --> 00:02:33,900
+and then hide the parts you don't want.
+
+60
+00:02:33,900 --> 00:02:38,696
+That gives the right answer, but saves nothing, because all the work was already done.
+
+61
+00:02:38,696 --> 00:02:42,265
+Real savings only come if the skipped blocks are never computed.
+
+62
+00:02:43,250 --> 00:02:44,448
+Here is our kernel.
+
+63
+00:02:44,448 --> 00:02:49,745
+For each block of sixty four queries, we look up which key blocks the pattern keeps.
+
+64
+00:02:49,745 --> 00:02:55,043
+We fetch only those keys and values, and run ordinary attention on that small piece:
+
+65
+00:02:55,043 --> 00:02:56,934
+scores, softmax, weighted sum.
+
+66
+00:02:56,934 --> 00:02:59,268
+Then we move to the next query block.
+
+67
+00:02:59,625 --> 00:03:01,482
+In code it really is five lines.
+
+68
+00:03:01,482 --> 00:03:02,817
+We wrote it in PyTorch.
+
+69
+00:03:02,817 --> 00:03:05,835
+PyTorch does the arithmetic, like any library would.
+
+70
+00:03:05,835 --> 00:03:09,781
+Our code decides which blocks are computed and how they are fetched,
+
+71
+00:03:09,781 --> 00:03:12,335
+and that is where all the savings come from.
+
+72
+00:03:12,708 --> 00:03:15,523
+Before running, we turn the pattern into a plan:
+
+73
+00:03:15,523 --> 00:03:19,509
+a short list for each query block, saying which key blocks it needs.
+
+74
+00:03:19,509 --> 00:03:24,903
+The plan is made once and reused, just like a real model reuses its pattern for every input.
+
+75
+00:03:25,292 --> 00:03:27,013
+Is the answer still correct?
+
+76
+00:03:27,013 --> 00:03:27,259
+Yes.
+
+77
+00:03:27,259 --> 00:03:30,947
+We compare every version against a high precision reference:
+
+78
+00:03:30,947 --> 00:03:35,619
+one hundred and sixty eight checks, all passing on both the CPU and the GPU,
+
+79
+00:03:35,619 --> 00:03:39,430
+with errors around one in a million, which is normal rounding.
+
+80
+00:03:40,417 --> 00:03:45,205
+Our first version copied the needed key and value blocks into a new piece of memory
+
+81
+00:03:45,205 --> 00:03:46,302
+before multiplying.
+
+82
+00:03:46,302 --> 00:03:47,628
+But copying takes time.
+
+83
+00:03:47,628 --> 00:03:50,629
+In version two we noticed that for a sliding window,
+
+84
+00:03:50,629 --> 00:03:53,917
+the needed blocks sit right next to each other in memory.
+
+85
+00:03:53,917 --> 00:03:56,456
+So we simply point at them, without copying.
+
+86
+00:03:56,456 --> 00:03:57,956
+PyTorch calls that a view.
+
+87
+00:03:58,333 --> 00:04:00,152
+We also tried a different idea:
+
+88
+00:04:00,152 --> 00:04:03,671
+do all query blocks in one giant multiply instead of a loop.
+
+89
+00:04:03,671 --> 00:04:08,363
+The catch is that every row must have the same length, so short rows get padded.
+
+90
+00:04:08,363 --> 00:04:13,818
+With Longformer, one global row needs all sixty four blocks while the others need about nine,
+
+91
+00:04:13,818 --> 00:04:16,164
+so everything gets padded to sixty four.
+
+92
+00:04:16,164 --> 00:04:17,747
+Most of the work is wasted.
+
+93
+00:04:18,125 --> 00:04:20,619
+Here are the four versions, measured.
+
+94
+00:04:20,619 --> 00:04:21,495
+Masked dense:
+
+95
+00:04:21,495 --> 00:04:24,124
+two hundred and forty two milliseconds.
+
+96
+00:04:24,124 --> 00:04:26,280
+Version one, which skips blocks:
+
+97
+00:04:26,280 --> 00:04:27,022
+thirty two.
+
+98
+00:04:27,022 --> 00:04:29,246
+Version two, which avoids copies:
+
+99
+00:04:29,246 --> 00:04:34,773
+twenty five on the CPU, and fifteen on the GPU, which is very sensitive to copies.
+
+100
+00:04:34,773 --> 00:04:37,132
+And the padded batch on Longformer:
+
+101
+00:04:37,132 --> 00:04:38,412
+over three hundred.
+
+102
+00:04:38,412 --> 00:04:41,445
+So we kept version two, and rejected padding.
+
+103
+00:04:42,417 --> 00:04:45,925
+To measure everything, we built a benchmarking framework.
+
+104
+00:04:45,925 --> 00:04:50,849
+One command runs every experiment, and saves a results table and a log for each.
+
+105
+00:04:50,849 --> 00:04:53,127
+Another command draws all the graphs.
+
+106
+00:04:53,127 --> 00:04:57,928
+Pattern, density, sequence length, block size and device are all configurable.
+
+107
+00:04:58,292 --> 00:05:03,530
+Time is the median of seven runs after a warm up, so one slow run doesn't distort it.
+
+108
+00:05:03,530 --> 00:05:05,503
+Throughput is tokens per second.
+
+109
+00:05:05,503 --> 00:05:08,523
+Computation is counted with the standard formula.
+
+110
+00:05:08,523 --> 00:05:12,344
+And memory is measured by running one call in a fresh process,
+
+111
+00:05:12,344 --> 00:05:16,103
+and asking the operating system how much memory it peaked at.
+
+112
+00:05:16,103 --> 00:05:19,863
+Everything ran on an Apple M4 laptop, on the CPU and the GPU.
+
+113
+00:05:20,833 --> 00:05:21,680
+First result:
+
+114
+00:05:21,680 --> 00:05:24,352
+time as the text gets longer, on the CPU.
+
+115
+00:05:24,352 --> 00:05:29,174
+Both axes are logarithmic, so the slope tells you how fast the cost grows.
+
+116
+00:05:29,174 --> 00:05:31,129
+Dense attention has slope two.
+
+117
+00:05:31,129 --> 00:05:32,237
+That's quadratic:
+
+118
+00:05:32,237 --> 00:05:34,778
+double the length, four times the time.
+
+119
+00:05:35,167 --> 00:05:38,395
+Our local window and Longformer kernels have slope one.
+
+120
+00:05:38,395 --> 00:05:42,972
+That's linear, because each query block always sees the same number of blocks,
+
+121
+00:05:42,972 --> 00:05:44,440
+however long the text is.
+
+122
+00:05:44,792 --> 00:05:49,685
+At eight thousand tokens, dense takes seven hundred and sixty four milliseconds.
+
+123
+00:05:49,685 --> 00:05:51,704
+Our local window takes fifty two.
+
+124
+00:05:51,704 --> 00:05:54,212
+That's fourteen point seven times faster,
+
+125
+00:05:54,212 --> 00:05:57,577
+almost exactly the fourteen and a half times less work.
+
+126
+00:05:57,577 --> 00:06:01,492
+At sixteen thousand tokens, dense can't even run on this laptop.
+
+127
+00:06:01,492 --> 00:06:04,245
+Ours takes one hundred and four milliseconds,
+
+128
+00:06:04,245 --> 00:06:07,915
+thirteen times faster than PyTorch's own built in attention.
+
+129
+00:06:08,875 --> 00:06:10,797
+Throughput tells the same story.
+
+130
+00:06:10,797 --> 00:06:16,084
+Our local window handles about one hundred and fifty seven thousand tokens per second at
+
+131
+00:06:16,084 --> 00:06:19,508
+every length, while dense drops to under eleven thousand.
+
+132
+00:06:19,508 --> 00:06:21,310
+And the amount of computation:
+
+133
+00:06:21,310 --> 00:06:26,116
+at sixteen thousand tokens, five hundred and fifty billion operations for dense,
+
+134
+00:06:26,116 --> 00:06:28,219
+but only nineteen billion for ours.
+
+135
+00:06:28,219 --> 00:06:29,600
+Twenty nine times less.
+
+136
+00:06:30,583 --> 00:06:35,759
+Next, we fix the length at four thousand tokens and change how many blocks we keep.
+
+137
+00:06:35,759 --> 00:06:38,690
+The dotted line is the ideal, one over density.
+
+138
+00:06:38,690 --> 00:06:40,436
+All four patterns follow it.
+
+139
+00:06:40,436 --> 00:06:44,240
+At twelve and a half percent, we're five to six times faster.
+
+140
+00:06:44,240 --> 00:06:46,984
+At about three percent, around twelve times.
+
+141
+00:06:47,375 --> 00:06:50,322
+And the pink line is masked dense, the lazy way.
+
+142
+00:06:50,322 --> 00:06:52,593
+It never gets faster, at any density.
+
+143
+00:06:52,593 --> 00:06:58,242
+It's actually a bit slower than plain dense, because hiding the unwanted part is extra work.
+
+144
+00:06:58,242 --> 00:07:00,882
+This is the clearest result of the project:
+
+145
+00:07:00,882 --> 00:07:02,846
+skipping helps, masking doesn't.
+
+146
+00:07:03,833 --> 00:07:04,236
+Memory.
+
+147
+00:07:04,236 --> 00:07:07,976
+Dense attention keeps two big tables, the scores and the weights.
+
+148
+00:07:07,976 --> 00:07:12,866
+At eight thousand tokens our formula predicts four thousand and ninety six megabytes,
+
+149
+00:07:12,866 --> 00:07:15,513
+and we measured four thousand and ninety nine.
+
+150
+00:07:15,513 --> 00:07:20,863
+Our kernel only ever holds one small piece, so it needs about five megabytes at every length:
+
+151
+00:07:20,863 --> 00:07:23,337
+roughly seven hundred and sixty times less.
+
+152
+00:07:23,337 --> 00:07:27,940
+That's what lets sparse attention handle lengths that dense attention can't fit.
+
+153
+00:07:28,917 --> 00:07:30,502
+Block size is a trade off.
+
+154
+00:07:30,502 --> 00:07:33,488
+Small blocks of sixteen follow a pattern closely,
+
+155
+00:07:33,488 --> 00:07:38,487
+so ninety seven percent of the work is useful, but there are many tiny multiplies,
+
+156
+00:07:38,487 --> 00:07:39,523
+and that is slow.
+
+157
+00:07:39,523 --> 00:07:44,400
+Big blocks of one hundred and twenty eight waste nineteen percent of their work,
+
+158
+00:07:44,400 --> 00:07:49,337
+but run faster, because computers prefer a few big operations to many small ones.
+
+159
+00:07:49,337 --> 00:07:51,410
+We chose sixty four, as a balance.
+
+160
+00:07:51,792 --> 00:07:52,270
+Threads.
+
+161
+00:07:52,270 --> 00:07:56,996
+PyTorch uses four threads by default, one for each of the M4's four fast cores.
+
+162
+00:07:56,996 --> 00:08:00,945
+That gives a two to two and a half times speed up over one thread.
+
+163
+00:08:00,945 --> 00:08:04,414
+Adding the six slower efficiency cores gives nothing more.
+
+164
+00:08:05,375 --> 00:08:08,754
+The same code runs on the GPU by changing one setting.
+
+165
+00:08:08,754 --> 00:08:14,697
+At eight thousand tokens, dense takes two hundred and ninety six milliseconds, ours twenty two:
+
+166
+00:08:14,697 --> 00:08:16,074
+thirteen times faster.
+
+167
+00:08:16,074 --> 00:08:21,517
+At sixteen thousand tokens, PyTorch's built in attention runs out of memory on the GPU,
+
+168
+00:08:21,517 --> 00:08:24,520
+while ours finishes in thirty four milliseconds.
+
+169
+00:08:24,875 --> 00:08:26,114
+One limit we found:
+
+170
+00:08:26,114 --> 00:08:30,025
+on the GPU, every small operation has a fixed start up cost.
+
+171
+00:08:30,025 --> 00:08:35,763
+We launch a few small operations per query block, so below about twelve percent density,
+
+172
+00:08:35,763 --> 00:08:39,088
+the time stops falling, at around ten milliseconds.
+
+173
+00:08:40,042 --> 00:08:42,645
+So why don't we reach the full ideal speed up?
+
+174
+00:08:42,645 --> 00:08:43,381
+Four reasons.
+
+175
+00:08:43,381 --> 00:08:46,777
+Each block has a fixed bookkeeping cost that doesn't shrink.
+
+176
+00:08:46,777 --> 00:08:48,135
+Copying data costs time.
+
+177
+00:08:48,135 --> 00:08:51,418
+Many small operations are less efficient than one big one,
+
+178
+00:08:51,418 --> 00:08:55,380
+which is also why sparse is slower than dense when nothing is skipped.
+
+179
+00:08:55,380 --> 00:08:58,776
+And uneven rows waste work if you force them into one shape.
+
+180
+00:08:58,776 --> 00:09:02,115
+These are the computer architecture lessons of the project.
+
+181
+00:09:03,083 --> 00:09:03,652
+To sum up.
+
+182
+00:09:03,652 --> 00:09:07,631
+We built a block sparse attention kernel and a benchmarking framework,
+
+183
+00:09:07,631 --> 00:09:10,132
+and measured them on a laptop's CPU and GPU.
+
+184
+00:09:10,132 --> 00:09:14,281
+With a sliding window, attention grows linearly instead of quadratically:
+
+185
+00:09:14,281 --> 00:09:18,261
+fourteen point seven times faster than dense at eight thousand tokens,
+
+186
+00:09:18,261 --> 00:09:21,273
+with about seven hundred and sixty times less memory.
+
+187
+00:09:21,273 --> 00:09:24,854
+The saving only appears when skipped blocks are never computed.
+
+188
+00:09:24,854 --> 00:09:29,345
+And how you organise the remaining work decides how close you get to the ideal.
+
+189
+00:09:29,708 --> 00:09:30,755
+Thanks for watching.

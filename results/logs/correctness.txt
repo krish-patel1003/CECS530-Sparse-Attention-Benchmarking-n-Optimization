@@ -1,0 +1,18 @@
+================================================================================================
+Correctness: every version vs a float64 reference (tolerance 1e-4)
+  device=cpu  heads=8  D=64  block=64  torch threads=4
+================================================================================================
+                       checks  passed   worst_error
+device impl                                        
+cpu    dense                4       4  7.748604e-07
+       masked_dense        20      20  1.192093e-06
+       padded_batched      20      20  1.192093e-06
+       v1_gather           20      20  1.192093e-06
+       v2_views            20      20  1.192093e-06
+mps    dense                4       4  7.748604e-07
+       masked_dense        20      20  1.192093e-06
+       padded_batched      20      20  1.192093e-06
+       v1_gather           20      20  1.192093e-06
+       v2_views            20      20  1.192093e-06
+
+ALL PASSED: True  (168 checks)

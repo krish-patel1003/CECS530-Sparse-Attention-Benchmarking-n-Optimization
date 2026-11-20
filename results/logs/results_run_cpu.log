@@ -1,0 +1,189 @@
+================================================================================================
+Correctness: every version vs a float64 reference (tolerance 1e-4)
+  device=cpu  heads=8  D=64  block=64  torch threads=4
+================================================================================================
+                       checks  passed   worst_error
+device impl                                        
+cpu    dense                4       4  7.748604e-07
+       masked_dense        20      20  1.192093e-06
+       padded_batched      20      20  1.192093e-06
+       v1_gather           20      20  1.192093e-06
+       v2_views            20      20  1.192093e-06
+mps    dense                4       4  7.748604e-07
+       masked_dense        20      20  1.192093e-06
+       padded_batched      20      20  1.192093e-06
+       v1_gather           20      20  1.192093e-06
+       v2_views            20      20  1.192093e-06
+
+ALL PASSED: True  (168 checks)
+
+================================================================================================
+Sequence length: dense vs block-sparse as N grows
+  device=cpu  heads=8  D=64  block=64  torch threads=4
+================================================================================================
+  N=512 done
+  N=1024 done
+  N=2048 done
+  N=4096 done
+  N=8192 done
+  N=16384 done
+                  impl                    pattern     N  density  time_ms  tokens_per_s  flop_reduction  speedup_vs_dense
+                 dense                      dense   512     1.00     2.14    239,536.76            1.00              1.00
+library (PyTorch SDPA)                      dense   512     1.00     1.13    453,900.71            1.00              1.89
+          block-sparse          local (±4 blocks)   512     0.81     2.53    202,018.85            1.23              0.84
+          block-sparse longformer (±3 + 1 global)   512     0.81     2.75    186,156.43            1.23              0.78
+          block-sparse               random 12.5%   512     0.12     0.97    530,157.91            8.00              2.21
+                 dense                      dense  1024     1.00     9.96    102,804.36            1.00              1.00
+library (PyTorch SDPA)                      dense  1024     1.00     3.80    269,296.52            1.00              2.62
+          block-sparse          local (±4 blocks)  1024     0.48     5.70    179,651.77            2.06              1.75
+          block-sparse longformer (±3 + 1 global)  1024     0.48     6.61    154,824.06            2.06              1.51
+          block-sparse               random 12.5%  1024     0.12     3.10    330,736.00            8.00              3.22
+                 dense                      dense  2048     1.00    39.81     51,440.86            1.00              1.00
+library (PyTorch SDPA)                      dense  2048     1.00    14.20    144,205.89            1.00              2.80
+          block-sparse          local (±4 blocks)  2048     0.26    12.47    164,243.49            3.82              3.19
+          block-sparse longformer (±3 + 1 global)  2048     0.26    15.02    136,364.39            3.82              2.65
+          block-sparse               random 12.5%  2048     0.12     9.86    207,630.71            8.00              4.04
+                 dense                      dense  4096     1.00   167.30     24,482.82            1.00              1.00
+library (PyTorch SDPA)                      dense  4096     1.00    82.93     49,390.98            1.00              2.02
+          block-sparse          local (±4 blocks)  4096     0.14    25.91    158,102.97            7.37              6.46
+          block-sparse longformer (±3 + 1 global)  4096     0.14    36.46    112,348.33            7.37              4.59
+          block-sparse               random 12.5%  4096     0.12    38.77    105,636.21            8.00              4.31
+                 dense                      dense  8192     1.00   763.67     10,727.09            1.00              1.00
+library (PyTorch SDPA)                      dense  8192     1.00   343.97     23,815.79            1.00              2.22
+          block-sparse          local (±4 blocks)  8192     0.07    52.01    157,499.34           14.47             14.68
+          block-sparse longformer (±3 + 1 global)  8192     0.07    62.46    131,162.94           14.47             12.23
+          block-sparse               random 12.5%  8192     0.12   134.70     60,816.95            8.00              5.67
+library (PyTorch SDPA)                      dense 16384     1.00 1,377.72     11,892.11            1.00               NaN
+          block-sparse          local (±4 blocks) 16384     0.03   104.18    157,267.28           28.69               NaN
+          block-sparse longformer (±3 + 1 global) 16384     0.03   130.12    125,910.67           28.69               NaN
+          block-sparse               random 12.5% 16384     0.12   625.93     26,175.59            8.00               NaN
+
+================================================================================================
+Sparsity level: N=4096, block density 100% -> 3%
+  device=cpu  heads=8  D=64  block=64  torch threads=4
+================================================================================================
+  density 1.0 done
+  density 0.5 done
+  density 0.25 done
+  density 0.125 done
+  density 0.0625 done
+  density 0.03125 done
+        impl    pattern  density  time_ms  speedup_vs_dense  ideal_speedup  percent_of_ideal  flop_reduction
+       dense      dense     1.00   169.89              1.00           1.00            100.00            1.00
+block-sparse      local     1.00   221.67              0.77           1.00             76.64            1.00
+block-sparse    strided     0.55   153.64              1.11           1.81             61.17            1.81
+block-sparse longformer     1.00   220.48              0.77           1.00             77.05            1.00
+block-sparse     random     1.00   220.69              0.77           1.00             76.98            1.00
+masked dense     random     1.00   233.26              0.73           1.00             72.83            1.00
+block-sparse      local     0.49    90.45              1.88           2.02             92.90            2.02
+block-sparse    strided     0.51   142.44              1.19           1.97             60.57            1.97
+block-sparse longformer     0.49   118.39              1.44           2.02             70.98            2.02
+block-sparse     random     0.50   148.30              1.15           2.00             57.28            2.00
+masked dense     random     0.50   263.22              0.65           2.00             32.27            1.00
+block-sparse      local     0.25    40.05              4.24           4.03            105.22            4.03
+block-sparse    strided     0.25    58.51              2.90           4.01             72.45            4.01
+block-sparse longformer     0.25    59.78              2.84           4.03             70.49            4.03
+block-sparse     random     0.25    67.06              2.53           4.00             63.33            4.00
+masked dense     random     0.25   269.15              0.63           4.00             15.78            1.00
+block-sparse      local     0.14    28.42              5.98           7.37             81.15            7.37
+block-sparse    strided     0.12    30.84              5.51           8.11             67.91            8.11
+block-sparse longformer     0.14    30.76              5.52           7.37             74.97            7.37
+block-sparse     random     0.12    33.17              5.12           8.00             64.03            8.00
+masked dense     random     0.12   255.69              0.66           8.00              8.31            1.00
+block-sparse      local     0.08    18.43              9.22          13.04             70.66           13.04
+block-sparse    strided     0.06    18.58              9.14          16.19             56.47           16.19
+block-sparse longformer     0.08    21.17              8.02          13.04             61.51           13.04
+block-sparse     random     0.06    19.33              8.79          16.00             54.94           16.00
+masked dense     random     0.06   259.91              0.65          16.00              4.09            1.00
+block-sparse      local     0.05    13.71             12.39          21.56             57.49           21.56
+block-sparse    strided     0.03    16.01             10.61          32.25             32.89           32.25
+block-sparse longformer     0.05    20.19              8.41          21.56             39.03           21.56
+block-sparse     random     0.03    13.91             12.21          32.00             38.17           32.00
+masked dense     random     0.03   244.63              0.69          32.00              2.17            1.00
+
+================================================================================================
+Ablation: masked dense, v1 gather, v2 views (final), padded batched (rejected)
+  device=cpu  heads=8  D=64  block=64  torch threads=4
+================================================================================================
+  N=4096 done
+  skip padded_batched longformer N=16384: padding would need 24.0 GB (longest row 256 blocks vs average 10.9)
+  N=16384 done
+          impl    pattern     N  density  time_ms  gflops             flops
+  masked dense      local  4096     0.14   241.87  142.06 34,359,738,368.00
+     v1_gather      local  4096     0.14    32.32  144.29  4,664,066,048.00
+      v2_views      local  4096     0.14    25.36  183.94  4,664,066,048.00
+padded_batched      local  4096     0.14    39.35  122.81  4,831,838,208.00
+  masked dense longformer  4096     0.14   246.10  139.62 34,359,738,368.00
+     v1_gather longformer  4096     0.14    33.70  138.38  4,664,066,048.00
+      v2_views longformer  4096     0.14    29.91  155.95  4,664,066,048.00
+padded_batched longformer  4096     0.14   317.42  108.25 34,359,738,368.00
+  masked dense     random  4096     0.12   244.61  140.46 34,359,738,368.00
+     v1_gather     random  4096     0.12    31.25  137.44  4,294,967,296.00
+      v2_views     random  4096     0.12    32.23  133.25  4,294,967,296.00
+padded_batched     random  4096     0.12    33.58  127.90  4,294,967,296.00
+     v1_gather      local 16384     0.03   129.61  147.83 19,159,580,672.00
+      v2_views      local 16384     0.03   102.75  186.47 19,159,580,672.00
+padded_batched      local 16384     0.03   167.66  115.28 19,327,352,832.00
+     v1_gather longformer 16384     0.04   161.77  144.47 23,370,661,888.00
+      v2_views longformer 16384     0.04   139.06  168.06 23,370,661,888.00
+     v1_gather     random 16384     0.04   141.64  136.45 19,327,352,832.00
+      v2_views     random 16384     0.04   141.12  136.96 19,327,352,832.00
+padded_batched     random 16384     0.04   172.61  111.97 19,327,352,832.00
+
+================================================================================================
+Block size: N=4096, sliding window of ±256 tokens
+  device=cpu  heads=8  D=64  block=64  torch threads=4
+================================================================================================
+ block_size  density  useful_fraction  time_ms  gflops
+         16     0.12             0.97    50.98   84.09
+         32     0.13             0.94    32.44  136.03
+         64     0.14             0.89    25.22  184.95
+        128     0.15             0.81    23.04  224.24
+
+================================================================================================
+CPU threads: N=4096 (Apple M4 = 4 performance + 6 efficiency cores)
+  device=cpu  heads=8  D=64  block=64  torch threads=4
+================================================================================================
+        impl  threads  time_ms  gflops  speedup_vs_1_thread
+       dense        1   376.82   91.18                 1.00
+block-sparse        1    53.45   87.26                 1.00
+       dense        2   225.19  152.58                 1.67
+block-sparse        2    34.61  134.77                 1.54
+       dense        4   159.42  215.53                 2.36
+block-sparse        4    26.15  178.39                 2.04
+       dense        6   171.71  200.10                 2.19
+block-sparse        6    27.78  167.87                 1.92
+       dense        8   160.57  213.99                 2.35
+block-sparse        8    26.48  176.15                 2.02
+       dense       10   165.85  207.18                 2.27
+block-sparse       10    26.75  174.37                 2.00
+
+================================================================================================
+Memory: peak extra memory of ONE call (fresh process per measurement)
+  device=cpu  heads=8  D=64  block=64  torch threads=4
+================================================================================================
+  N=1024 done
+  N=2048 done
+  N=4096 done
+  N=8192 done
+  N=16384 done
+        impl     N  density  extra_mb  predicted_scores_mb  inputs_mb
+       dense  1024     0.48     65.61                32.00       6.00
+masked_dense  1024     0.48     66.00                32.00       6.00
+     library  1024     0.48      3.20                32.00       6.00
+    v2_views  1024     0.48      5.27                32.00       6.00
+       dense  2048     0.26    258.42               128.00      12.00
+masked_dense  2048     0.26    258.58               128.00      12.00
+     library  2048     0.26      3.20               128.00      12.00
+    v2_views  2048     0.26      5.25               128.00      12.00
+       dense  4096     0.14  1,026.39               512.00      24.00
+masked_dense  4096     0.14  1,042.64               512.00      24.00
+     library  4096     0.14      3.25               512.00      24.00
+    v2_views  4096     0.14      5.30               512.00      24.00
+       dense  8192     0.07  4,099.19             2,048.00      48.00
+masked_dense  8192     0.07  4,162.55             2,048.00      48.00
+     library  8192     0.07      4.09             2,048.00      48.00
+    v2_views  8192     0.07      5.36             2,048.00      48.00
+     library 16384     0.03      3.97             8,192.00      96.00
+    v2_views 16384     0.03      4.72             8,192.00      96.00
+

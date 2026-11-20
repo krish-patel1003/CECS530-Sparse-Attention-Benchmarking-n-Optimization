@@ -1,0 +1,40 @@
+================================================================================================
+Sequence length: dense vs block-sparse as N grows
+  device=mps  heads=8  D=64  block=64  torch threads=4
+================================================================================================
+  N=512 done
+  N=1024 done
+  N=2048 done
+  N=4096 done
+  N=8192 done
+  OUT OF MEMORY: PyTorch SDPA at N=16384 (8.00 GiB requested)
+  N=16384 done
+                  impl                    pattern     N  density  time_ms  tokens_per_s  flop_reduction  speedup_vs_dense
+                 dense                      dense   512     1.00     1.57    325,924.28            1.00              1.00
+library (PyTorch SDPA)                      dense   512     1.00     1.33    384,120.23            1.00              1.18
+          block-sparse          local (±4 blocks)   512     0.81     0.97    528,334.52            1.23              1.62
+          block-sparse longformer (±3 + 1 global)   512     0.81     1.11    461,642.64            1.23              1.42
+          block-sparse               random 12.5%   512     0.12     0.78    652,853.04            8.00              2.00
+                 dense                      dense  1024     1.00     2.69    380,958.33            1.00              1.00
+library (PyTorch SDPA)                      dense  1024     1.00     3.54    288,928.86            1.00              0.76
+          block-sparse          local (±4 blocks)  1024     0.48     1.66    615,153.56            2.06              1.61
+          block-sparse longformer (±3 + 1 global)  1024     0.48     2.06    497,973.82            2.06              1.31
+          block-sparse               random 12.5%  1024     0.12     1.49    686,960.17            8.00              1.80
+                 dense                      dense  2048     1.00     9.07    225,907.26            1.00              1.00
+library (PyTorch SDPA)                      dense  2048     1.00    13.19    155,244.13            1.00              0.69
+          block-sparse          local (±4 blocks)  2048     0.26     3.03    675,137.09            3.82              2.99
+          block-sparse longformer (±3 + 1 global)  2048     0.26     4.46    459,098.43            3.82              2.03
+          block-sparse               random 12.5%  2048     0.12     3.34    612,592.97            8.00              2.71
+                 dense                      dense  4096     1.00    40.17    101,977.86            1.00              1.00
+library (PyTorch SDPA)                      dense  4096     1.00    64.39     63,614.46            1.00              0.62
+          block-sparse          local (±4 blocks)  4096     0.14    17.10    239,556.68            7.37              2.35
+          block-sparse longformer (±3 + 1 global)  4096     0.14    34.06    120,243.07            7.37              1.18
+          block-sparse               random 12.5%  4096     0.12    36.25    112,991.16            8.00              1.11
+                 dense                      dense  8192     1.00   296.16     27,661.18            1.00              1.00
+library (PyTorch SDPA)                      dense  8192     1.00   382.91     21,394.33            1.00              0.77
+          block-sparse          local (±4 blocks)  8192     0.07    22.43    365,163.43           14.47             13.20
+          block-sparse longformer (±3 + 1 global)  8192     0.07    33.19    246,821.64           14.47              8.92
+          block-sparse               random 12.5%  8192     0.12    67.12    122,046.35            8.00              4.41
+          block-sparse          local (±4 blocks) 16384     0.03    33.82    484,404.10           28.69               NaN
+          block-sparse longformer (±3 + 1 global) 16384     0.03    43.70    374,953.16           28.69               NaN
+          block-sparse               random 12.5% 16384     0.12   334.64     48,960.46            8.00               NaN

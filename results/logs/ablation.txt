@@ -1,0 +1,28 @@
+================================================================================================
+Ablation: masked dense, v1 gather, v2 views (final), padded batched (rejected)
+  device=cpu  heads=8  D=64  block=64  torch threads=4
+================================================================================================
+  N=4096 done
+  skip padded_batched longformer N=16384: padding would need 24.0 GB (longest row 256 blocks vs average 10.9)
+  N=16384 done
+          impl    pattern     N  density  time_ms  gflops             flops
+  masked dense      local  4096     0.14   241.87  142.06 34,359,738,368.00
+     v1_gather      local  4096     0.14    32.32  144.29  4,664,066,048.00
+      v2_views      local  4096     0.14    25.36  183.94  4,664,066,048.00
+padded_batched      local  4096     0.14    39.35  122.81  4,831,838,208.00
+  masked dense longformer  4096     0.14   246.10  139.62 34,359,738,368.00
+     v1_gather longformer  4096     0.14    33.70  138.38  4,664,066,048.00
+      v2_views longformer  4096     0.14    29.91  155.95  4,664,066,048.00
+padded_batched longformer  4096     0.14   317.42  108.25 34,359,738,368.00
+  masked dense     random  4096     0.12   244.61  140.46 34,359,738,368.00
+     v1_gather     random  4096     0.12    31.25  137.44  4,294,967,296.00
+      v2_views     random  4096     0.12    32.23  133.25  4,294,967,296.00
+padded_batched     random  4096     0.12    33.58  127.90  4,294,967,296.00
+     v1_gather      local 16384     0.03   129.61  147.83 19,159,580,672.00
+      v2_views      local 16384     0.03   102.75  186.47 19,159,580,672.00
+padded_batched      local 16384     0.03   167.66  115.28 19,327,352,832.00
+     v1_gather longformer 16384     0.04   161.77  144.47 23,370,661,888.00
+      v2_views longformer 16384     0.04   139.06  168.06 23,370,661,888.00
+     v1_gather     random 16384     0.04   141.64  136.45 19,327,352,832.00
+      v2_views     random 16384     0.04   141.12  136.96 19,327,352,832.00
+padded_batched     random 16384     0.04   172.61  111.97 19,327,352,832.00

@@ -1,0 +1,17 @@
+================================================================================================
+CPU threads: N=4096 (Apple M4 = 4 performance + 6 efficiency cores)
+  device=cpu  heads=8  D=64  block=64  torch threads=4
+================================================================================================
+        impl  threads  time_ms  gflops  speedup_vs_1_thread
+       dense        1   376.82   91.18                 1.00
+block-sparse        1    53.45   87.26                 1.00
+       dense        2   225.19  152.58                 1.67
+block-sparse        2    34.61  134.77                 1.54
+       dense        4   159.42  215.53                 2.36
+block-sparse        4    26.15  178.39                 2.04
+       dense        6   171.71  200.10                 2.19
+block-sparse        6    27.78  167.87                 1.92
+       dense        8   160.57  213.99                 2.35
+block-sparse        8    26.48  176.15                 2.02
+       dense       10   165.85  207.18                 2.27
+block-sparse       10    26.75  174.37                 2.00

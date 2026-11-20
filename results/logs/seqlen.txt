@@ -1,0 +1,40 @@
+================================================================================================
+Sequence length: dense vs block-sparse as N grows
+  device=cpu  heads=8  D=64  block=64  torch threads=4
+================================================================================================
+  N=512 done
+  N=1024 done
+  N=2048 done
+  N=4096 done
+  N=8192 done
+  N=16384 done
+                  impl                    pattern     N  density  time_ms  tokens_per_s  flop_reduction  speedup_vs_dense
+                 dense                      dense   512     1.00     2.14    239,536.76            1.00              1.00
+library (PyTorch SDPA)                      dense   512     1.00     1.13    453,900.71            1.00              1.89
+          block-sparse          local (±4 blocks)   512     0.81     2.53    202,018.85            1.23              0.84
+          block-sparse longformer (±3 + 1 global)   512     0.81     2.75    186,156.43            1.23              0.78
+          block-sparse               random 12.5%   512     0.12     0.97    530,157.91            8.00              2.21
+                 dense                      dense  1024     1.00     9.96    102,804.36            1.00              1.00
+library (PyTorch SDPA)                      dense  1024     1.00     3.80    269,296.52            1.00              2.62
+          block-sparse          local (±4 blocks)  1024     0.48     5.70    179,651.77            2.06              1.75
+          block-sparse longformer (±3 + 1 global)  1024     0.48     6.61    154,824.06            2.06              1.51
+          block-sparse               random 12.5%  1024     0.12     3.10    330,736.00            8.00              3.22
+                 dense                      dense  2048     1.00    39.81     51,440.86            1.00              1.00
+library (PyTorch SDPA)                      dense  2048     1.00    14.20    144,205.89            1.00              2.80
+          block-sparse          local (±4 blocks)  2048     0.26    12.47    164,243.49            3.82              3.19
+          block-sparse longformer (±3 + 1 global)  2048     0.26    15.02    136,364.39            3.82              2.65
+          block-sparse               random 12.5%  2048     0.12     9.86    207,630.71            8.00              4.04
+                 dense                      dense  4096     1.00   167.30     24,482.82            1.00              1.00
+library (PyTorch SDPA)                      dense  4096     1.00    82.93     49,390.98            1.00              2.02
+          block-sparse          local (±4 blocks)  4096     0.14    25.91    158,102.97            7.37              6.46
+          block-sparse longformer (±3 + 1 global)  4096     0.14    36.46    112,348.33            7.37              4.59
+          block-sparse               random 12.5%  4096     0.12    38.77    105,636.21            8.00              4.31
+                 dense                      dense  8192     1.00   763.67     10,727.09            1.00              1.00
+library (PyTorch SDPA)                      dense  8192     1.00   343.97     23,815.79            1.00              2.22
+          block-sparse          local (±4 blocks)  8192     0.07    52.01    157,499.34           14.47             14.68
+          block-sparse longformer (±3 + 1 global)  8192     0.07    62.46    131,162.94           14.47             12.23
+          block-sparse               random 12.5%  8192     0.12   134.70     60,816.95            8.00              5.67
+library (PyTorch SDPA)                      dense 16384     1.00 1,377.72     11,892.11            1.00               NaN
+          block-sparse          local (±4 blocks) 16384     0.03   104.18    157,267.28           28.69               NaN
+          block-sparse longformer (±3 + 1 global) 16384     0.03   130.12    125,910.67           28.69               NaN
+          block-sparse               random 12.5% 16384     0.12   625.93     26,175.59            8.00               NaN

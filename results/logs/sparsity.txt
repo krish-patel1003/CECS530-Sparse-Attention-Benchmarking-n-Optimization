@@ -1,0 +1,42 @@
+================================================================================================
+Sparsity level: N=4096, block density 100% -> 3%
+  device=cpu  heads=8  D=64  block=64  torch threads=4
+================================================================================================
+  density 1.0 done
+  density 0.5 done
+  density 0.25 done
+  density 0.125 done
+  density 0.0625 done
+  density 0.03125 done
+        impl    pattern  density  time_ms  speedup_vs_dense  ideal_speedup  percent_of_ideal  flop_reduction
+       dense      dense     1.00   169.89              1.00           1.00            100.00            1.00
+block-sparse      local     1.00   221.67              0.77           1.00             76.64            1.00
+block-sparse    strided     0.55   153.64              1.11           1.81             61.17            1.81
+block-sparse longformer     1.00   220.48              0.77           1.00             77.05            1.00
+block-sparse     random     1.00   220.69              0.77           1.00             76.98            1.00
+masked dense     random     1.00   233.26              0.73           1.00             72.83            1.00
+block-sparse      local     0.49    90.45              1.88           2.02             92.90            2.02
+block-sparse    strided     0.51   142.44              1.19           1.97             60.57            1.97
+block-sparse longformer     0.49   118.39              1.44           2.02             70.98            2.02
+block-sparse     random     0.50   148.30              1.15           2.00             57.28            2.00
+masked dense     random     0.50   263.22              0.65           2.00             32.27            1.00
+block-sparse      local     0.25    40.05              4.24           4.03            105.22            4.03
+block-sparse    strided     0.25    58.51              2.90           4.01             72.45            4.01
+block-sparse longformer     0.25    59.78              2.84           4.03             70.49            4.03
+block-sparse     random     0.25    67.06              2.53           4.00             63.33            4.00
+masked dense     random     0.25   269.15              0.63           4.00             15.78            1.00
+block-sparse      local     0.14    28.42              5.98           7.37             81.15            7.37
+block-sparse    strided     0.12    30.84              5.51           8.11             67.91            8.11
+block-sparse longformer     0.14    30.76              5.52           7.37             74.97            7.37
+block-sparse     random     0.12    33.17              5.12           8.00             64.03            8.00
+masked dense     random     0.12   255.69              0.66           8.00              8.31            1.00
+block-sparse      local     0.08    18.43              9.22          13.04             70.66           13.04
+block-sparse    strided     0.06    18.58              9.14          16.19             56.47           16.19
+block-sparse longformer     0.08    21.17              8.02          13.04             61.51           13.04
+block-sparse     random     0.06    19.33              8.79          16.00             54.94           16.00
+masked dense     random     0.06   259.91              0.65          16.00              4.09            1.00
+block-sparse      local     0.05    13.71             12.39          21.56             57.49           21.56
+block-sparse    strided     0.03    16.01             10.61          32.25             32.89           32.25
+block-sparse longformer     0.05    20.19              8.41          21.56             39.03           21.56
+block-sparse     random     0.03    13.91             12.21          32.00             38.17           32.00
+masked dense     random     0.03   244.63              0.69          32.00              2.17            1.00
