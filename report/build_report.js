@@ -2,7 +2,9 @@
 //   NODE_PATH=$(npm root -g) node report/build_report.js
 const fs = require("fs");
 const path = require("path");
-const { Document, Packer, Paragraph, TextRun, AlignmentType, Footer, PageNumber, TableOfContents, PageBreak } = require("docx");
+const { Document, Packer, Paragraph, TextRun, AlignmentType, Footer, PageNumber, TableOfContents, PageBreak, ExternalHyperlink } = require("docx");
+const REPO = "https://github.com/krish-patel1003/CECS530-Sparse-Attention-Benchmarking-n-Optimization";
+const repoLink = (size = 21) => new ExternalHyperlink({ link: REPO, children: [new TextRun({ text: REPO, style: "Hyperlink", color: "1F5FAE", underline: {}, size })] });
 const { P, H1, H2, H3, B, N, Fig, Tbl, Code, styles, numbering, PAGE_W, MARGIN } = require("./lib");
 
 const title = [
@@ -13,6 +15,8 @@ const title = [
   new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 120 }, children: [new TextRun({ text: "Computer Architecture — Term Project Final Report", size: 24 })] }),
   new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 120 }, children: [new TextRun({ text: "Team members: Krish Patel, Aarsh Sanjay Sharma", size: 24 })] }),
   new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 120 }, children: [new TextRun({ text: "Fall 2026", size: 24 })] }),
+  new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 600, after: 60 }, children: [new TextRun({ text: "Source code, results and figures:", size: 22, color: "595959" })] }),
+  new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 120 }, children: [repoLink(22)] }),
   new Paragraph({ children: [new PageBreak()] }),
   new Paragraph({ children: [new TextRun({ text: "Contents", bold: true, size: 30, color: "1F3864" })], spacing: { after: 160 } }),
   new TableOfContents("Contents", { hyperlink: true, headingStyleRange: "1-2" }),
@@ -112,6 +116,7 @@ const body = [
     "number of blocks, so short rows are padded to the longest row. For uneven patterns such as Longformer, where a global row needs all blocks, " +
     "almost everything is padded to full size."),
   H2("3.4 Benchmarking framework"),
+  new Paragraph({ spacing: { after: 120 }, children: [new TextRun("The complete source code, raw results, figures and this report are available at "), repoLink(), new TextRun(".")] }),
   P("`run_experiments.py` runs every experiment with one command and writes a CSV file and a console log per experiment; `plot_results.py` draws " +
     "every graph. Options: `--device cpu|mps`, `--heads`, `--dim`, `--bs` (block size)."),
   B("**Time**: one warm-up run, then 7 runs; we report the **median**. On the GPU the clock is stopped only after the GPU has finished (`torch.mps.synchronize`)."),
@@ -261,6 +266,7 @@ const body = [
     "built-in attention at 16,384 tokens** on the CPU; 13.2× faster than dense on the GPU."),
   B("Memory drops from **4,099 MB to about 5 MB** at 8,192 tokens, so sequences that dense attention cannot fit become possible."),
   B("The gap to the ideal speed-up comes from per-operation overhead, memory copies and load imbalance; avoiding copies gave up to 2.7× on the GPU."),
+  new Paragraph({ spacing: { after: 120 }, children: [new TextRun({ text: "Source code and all results: ", bold: true }), repoLink()] }),
   P("What we learned: the savings of sparse attention depend as much on *how* the remaining work is organised (avoiding copies, avoiding padding, " +
     "choosing the block size, using the right cores) as on how much work is skipped. Next steps would be to replace the Python loop with a single " +
     "custom GPU kernel to remove per-block overhead, use 16-bit numbers, and support training."),
